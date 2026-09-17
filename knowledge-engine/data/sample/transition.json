@@ -1,0 +1,7 @@
+{
+  "source_screen_id": "screen_000001",
+  "target_screen_id": "screen_000002",
+  "action_id": "action_000001",
+  "action_type": "tap",
+  "element_id": "element_000001"
+}

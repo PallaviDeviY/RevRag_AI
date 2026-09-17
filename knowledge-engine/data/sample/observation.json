@@ -1,0 +1,33 @@
+{
+  "observation_id": "obs_000001",
+  "screen_id": "screen_000001",
+  "timestamp": "2026-09-17T21:30:00+05:30",
+  "package_name": "com.example.app",
+  "activity": "com.example.app.MainActivity",
+  "screenshot_path": "screenshots/obs_000001.png",
+  "ui_tree_path": "ui_trees/obs_000001.xml",
+  "elements": [
+    {
+      "element_id": "element_000001",
+      "type": "android.widget.Button",
+      "text": "Login",
+      "content_description": "Login",
+      "resource_id": "com.example:id/login",
+      "clickable": true,
+      "enabled": true,
+      "scrollable": false,
+      "bounds": { "left": 100, "top": 400, "right": 500, "bottom": 480 }
+    },
+    {
+      "element_id": "element_000002",
+      "type": "android.widget.EditText",
+      "text": "",
+      "content_description": "Email address",
+      "resource_id": "com.example:id/email",
+      "clickable": true,
+      "enabled": true,
+      "scrollable": false,
+      "bounds": { "left": 60, "top": 240, "right": 540, "bottom": 300 }
+    }
+  ]
+}

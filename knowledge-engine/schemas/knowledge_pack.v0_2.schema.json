@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://revrag.ai/schemas/knowledge_pack.v0_2.schema.json",
+  "title": "KnowledgePack (v0.2, PROVISIONAL)",
+  "description": "PROPOSAL by Member 3 (Knowledge Engine). This file is a versioned EXTENSION of knowledge_pack.schema.json and does not replace it. The two approved fields (pack_id, source_observation_ids) are unchanged and still required. Everything else is provisional and must be approved by the team before any consumer depends on it. Do not edit knowledge_pack.schema.json until that approval happens.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["pack_id", "source_observation_ids"],
+  "properties": {
+    "pack_id": { "type": "string" },
+    "source_observation_ids": { "type": "array", "items": { "type": "string" } },
+    "schema_version": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "scan_id": { "type": "string" },
+    "app": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "package_name": { "type": ["string", "null"] },
+        "packages": { "type": "array", "items": { "type": "string" } },
+        "activity_count": { "type": "integer" },
+        "activities": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "screens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["screen_id"],
+        "properties": {
+          "screen_id": { "type": "string", "pattern": "^screen_[0-9]{6}$" },
+          "package_name": { "type": ["string", "null"] },
+          "activity": { "type": ["string", "null"] },
+          "screenshot_path": { "type": ["string", "null"] },
+          "ui_tree_path": { "type": ["string", "null"] },
+          "fingerprint": { "type": "string" },
+          "structural_fingerprint": { "type": "string" },
+          "first_seen_observation_id": { "type": ["string", "null"] },
+          "observation_count": { "type": "integer" },
+          "element_count": { "type": "integer" },
+          "elements": { "type": "array" }
+        }
+      }
+    },
+    "elements": { "type": "array" },
+    "actions": { "type": "array" },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["transition_id", "source_screen_id", "target_screen_id"],
+        "properties": {
+          "transition_id": { "type": "string" },
+          "source_screen_id": { "type": "string" },
+          "target_screen_id": { "type": "string" },
+          "action_id": { "type": ["string", "null"] },
+          "action_type": { "type": ["string", "null"] },
+          "element_id": { "type": ["string", "null"] },
+          "success": { "type": ["boolean", "null"] }
+        }
+      }
+    },
+    "journeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["journey_id", "name", "screen_ids"],
+        "properties": {
+          "journey_id": { "type": "string" },
+          "name": { "type": "string" },
+          "start_screen_id": { "type": "string" },
+          "end_screen_id": { "type": "string" },
+          "screen_ids": { "type": "array", "items": { "type": "string" } },
+          "action_ids": { "type": "array", "items": { "type": "string" } },
+          "transition_ids": { "type": "array", "items": { "type": "string" } },
+          "length": { "type": "integer" },
+          "kind": { "type": "string" }
+        }
+      }
+    },
+    "design_language": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Best-effort visual evidence. Empty arrays mean 'not measurable', not 'absent from the app'.",
+      "properties": {
+        "dominant_colors": { "type": "array", "items": { "type": "string" } },
+        "background_colors": { "type": "array", "items": { "type": "string" } },
+        "text_colors": { "type": "array", "items": { "type": "string" } },
+        "button_colors": { "type": "array", "items": { "type": "string" } },
+        "font_sizes": { "type": "array" },
+        "corner_radius_estimates": { "type": "array" },
+        "spacing_estimates": { "type": "object" },
+        "screen_dimensions": { "type": "array" },
+        "screenshot_count": { "type": "integer" },
+        "analyzed_count": { "type": "integer" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "analysis_warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "statistics": { "type": "object", "additionalProperties": true },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  }
+}

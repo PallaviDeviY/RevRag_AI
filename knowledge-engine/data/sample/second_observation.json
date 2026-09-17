@@ -1,0 +1,22 @@
+{
+  "observation_id": "obs_000002",
+  "screen_id": "screen_000002",
+  "timestamp": "2026-09-17T21:30:12+05:30",
+  "package_name": "com.example.app",
+  "activity": "com.example.app.HomeActivity",
+  "screenshot_path": "screenshots/obs_000002.png",
+  "ui_tree_path": "ui_trees/obs_000002.xml",
+  "elements": [
+    {
+      "element_id": "element_000004",
+      "type": "android.widget.TextView",
+      "text": "Welcome back",
+      "content_description": null,
+      "resource_id": "com.example:id/welcome",
+      "clickable": false,
+      "enabled": true,
+      "scrollable": false,
+      "bounds": { "left": 0, "top": 100, "right": 1080, "bottom": 180 }
+    }
+  ]
+}
