@@ -256,6 +256,7 @@ class EmulatorManager:
                 "android.intent.category.LAUNCHER",
                 "1",
             ],
+            timeout=max(25.0, self.config.default_timeout),
             check=False,
         )
         if not result.ok or "No activities found" in (result.stdout + result.stderr):

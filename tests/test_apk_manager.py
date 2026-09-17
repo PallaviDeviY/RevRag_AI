@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from android.apk_manager import extract_package_name, install_apk, validate_apk
+from android.apk_manager import (
+    _package_from_pm,
+    extract_package_name,
+    install_apk,
+    validate_apk,
+)
 from android.config import load_config
 from android.emulator_manager import CommandRunner, EmulatorManager
 from android.exceptions import ApkNotFoundError, InvalidApkError, SubprocessFailedError
@@ -123,3 +128,35 @@ def test_install_apk_preserves_unknown_package_when_pm_has_no_package_lines(tmp_
 
     assert result.success is True
     assert result.package_name is None
+
+
+def test_install_apk_discovers_reinstalled_package_from_device_apk_path_change(tmp_path: Path) -> None:
+    apk = tmp_path / "ApiDemos-debug.apk"
+    apk.write_bytes(b"PK\x03\x04notzip")
+    pm_before = (
+        "package:/data/app/~~old/io.appium.android.apis-old/base.apk=io.appium.android.apis\n"
+        "package:/data/app/~~other/com.android.vending-abc/base.apk=com.android.vending\n"
+    )
+    pm_after = (
+        "package:/data/app/~~new/io.appium.android.apis-new/base.apk=io.appium.android.apis\n"
+        "package:/data/app/~~other/com.android.vending-abc/base.apk=com.android.vending\n"
+    )
+    emulator = FakeInstallEmulator(pm_outputs=[pm_before, pm_after])
+
+    result = install_apk(str(apk), emulator=emulator)
+
+    assert result.success is True
+    assert result.package_name == "io.appium.android.apis"
+
+
+def test_package_from_pm_rejects_unrelated_vending_and_matches_apk_tokens() -> None:
+    pm_output = (
+        "package:/data/app/~~other/com.android.vending-abc/base.apk=com.android.vending\n"
+        "package:/data/app/~~appium/io.appium.android.apis-def/base.apk=io.appium.android.apis\n"
+        "package:/system/priv-app/Settings/Settings.apk=com.android.settings\n"
+    )
+    emulator = FakeInstallEmulator(pm_outputs=[pm_output])
+
+    pkg = _package_from_pm(emulator, "ApiDemos-debug")
+    assert pkg == "io.appium.android.apis"
+

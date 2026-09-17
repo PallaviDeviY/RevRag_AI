@@ -6,7 +6,7 @@ import logging
 import re
 import zipfile
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Mapping, Optional, Sequence, Union
 
 from .config import Config, load_config
 from .emulator_manager import CommandRunner, EmulatorManager
@@ -76,7 +76,7 @@ def install_apk(
         emulator.require_adb()
         emulator.resolve_serial(required=True)
         package_name = extract_package_name(str(path), runner=emulator.runner)
-        packages_before = _pm_packages(emulator) if not package_name else []
+        packages_before = _pm_package_map(emulator) if not package_name else {}
         args = ["install"]
         if reinstall:
             args.append("-r")
@@ -125,44 +125,168 @@ def install_apk(
         )
 
 
+def _extract_tokens(text: str) -> set[str]:
+    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+    tokens = {t.lower() for t in re.findall(r"[A-Za-z0-9]+", s) if len(t) >= 2}
+    tokens -= {"debug", "release", "unsigned", "signed", "test", "aligned", "apk", "universal"}
+    return tokens
+
+
+def _score_package(hint: str, pkg: str, device_path: str = "") -> int:
+    if not hint:
+        return 0
+    hint_lower = hint.lower()
+    pkg_lower = pkg.lower()
+    clean_hint = re.sub(
+        r"[-_.](debug|release|unsigned|signed|test|aligned|universal).*", "", hint_lower
+    )
+    score = 0
+    if clean_hint and clean_hint == pkg_lower:
+        score = 90
+    elif clean_hint and clean_hint in pkg_lower:
+        score = 70
+    elif hint_lower in pkg_lower:
+        score = 60
+    elif pkg_lower in hint_lower:
+        score = 50
+
+    hint_tokens = _extract_tokens(hint)
+    pkg_tokens = _extract_tokens(pkg)
+    path_tokens = _extract_tokens(device_path) if device_path else set()
+    token_score = 0
+    for ht in hint_tokens:
+        for pt in pkg_tokens:
+            if ht == pt:
+                token_score += 30
+            elif ht.startswith(pt) or pt.startswith(ht):
+                token_score += 20
+            elif ht in pt or pt in ht:
+                token_score += 10
+        for pat in path_tokens:
+            if ht == pat:
+                token_score += 15
+            elif ht.startswith(pat) or pat.startswith(ht):
+                token_score += 10
+
+    if token_score > 0:
+        score += token_score
+        if device_path.startswith("/data/app"):
+            score += 5
+
+    return score
+
+
+def _best_matching_package(
+    hint: str,
+    packages: Sequence[str],
+    pkg_map: Mapping[str, str],
+) -> Optional[str]:
+    scored = []
+    for pkg in packages:
+        score = _score_package(hint, pkg, pkg_map.get(pkg, ""))
+        if score > 0:
+            scored.append((score, pkg))
+    if scored:
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return scored[0][1]
+    return None
+
+
+def _pm_package_map(emulator: EmulatorManager) -> dict[str, str]:
+    result = emulator.adb(["shell", "pm", "list", "packages", "-f"], check=False)
+    output = result.stdout or ""
+    if not result.ok or "package:" not in output:
+        result = emulator.adb(["shell", "pm", "list", "packages"], check=False)
+        output = result.stdout or ""
+    pkg_map: dict[str, str] = {}
+    for line in output.splitlines():
+        line = line.strip()
+        if not line.startswith("package:"):
+            continue
+        rest = line[len("package:") :].strip()
+        if "=" in rest:
+            apk_path, _, pkg = rest.rpartition("=")
+            pkg_map[pkg.strip()] = apk_path.strip()
+        elif rest:
+            pkg_map[rest.strip()] = ""
+    return pkg_map
+
+
+def _pm_packages(emulator: EmulatorManager) -> list[str]:
+    return list(_pm_package_map(emulator).keys())
+
+
 def _package_from_pm(
     emulator: EmulatorManager,
     hint: str,
     *,
-    packages_before: Optional[Sequence[str]] = None,
+    packages_before: Optional[Union[Mapping[str, str], Sequence[str]]] = None,
 ) -> Optional[str]:
-    packages = _pm_packages(emulator)
-    before = set(packages_before or [])
-    added = [pkg for pkg in packages if pkg not in before]
-    hint_lower = hint.lower() if hint else ""
-    if hint_lower:
-        for pkg in added:
-            if hint_lower in pkg.lower():
-                return pkg
-    if len(added) == 1:
-        return added[0]
-    if hint_lower:
-        for pkg in packages:
-            if hint_lower in pkg.lower():
-                return pkg
-    if before:
-        return _latest_updated_package_from_dumpsys(emulator, packages)
+    after_map = _pm_package_map(emulator)
+    if not after_map:
+        return None
+
+    before_map: dict[str, str] = {}
+    if packages_before is not None:
+        if isinstance(packages_before, (dict, Mapping)):
+            before_map = dict(packages_before)
+        else:
+            before_map = {pkg: "" for pkg in packages_before}
+
+    # 1. Check for newly added packages
+    added = [pkg for pkg in after_map if pkg not in before_map]
+    if added:
+        if hint:
+            best_added = _best_matching_package(hint, added, after_map)
+            if best_added:
+                return best_added
+        if len(added) == 1:
+            return added[0]
+
+    # 2. Check for reinstalled package where device APK path changed
+    if before_map:
+        changed_paths = [
+            pkg
+            for pkg, path in after_map.items()
+            if pkg in before_map and path and before_map.get(pkg) and path != before_map[pkg]
+        ]
+        if changed_paths:
+            if hint:
+                best_changed = _best_matching_package(hint, changed_paths, after_map)
+                if best_changed:
+                    return best_changed
+            if len(changed_paths) == 1:
+                return changed_paths[0]
+
+    # 3. Match hint against packages, prioritizing user-installed (/data/app) packages
+    if hint:
+        data_app_packages = [
+            pkg for pkg, path in after_map.items() if path.startswith("/data/app")
+        ]
+        if data_app_packages:
+            best = _best_matching_package(hint, data_app_packages, after_map)
+            if best:
+                return best
+
+        best = _best_matching_package(hint, list(after_map.keys()), after_map)
+        if best:
+            return best
+
+    # 4. Fallback to dumpsys for cases with arbitrary names and no path changes (e.g. unit tests)
+    if before_map:
+        dumpsys_pkg = _latest_updated_package_from_dumpsys(
+            emulator, list(after_map.keys()), hint=hint
+        )
+        if dumpsys_pkg:
+            return dumpsys_pkg
+
     return None
-
-
-def _pm_packages(emulator: EmulatorManager) -> list[str]:
-    result = emulator.adb(["shell", "pm", "list", "packages"], check=False)
-    packages = []
-    for line in (result.stdout or "").splitlines():
-        line = line.strip()
-        if line.startswith("package:"):
-            packages.append(line.split(":", 1)[1].strip())
-    return packages
 
 
 def _latest_updated_package_from_dumpsys(
     emulator: EmulatorManager,
     known_packages: Sequence[str],
+    hint: Optional[str] = None,
 ) -> Optional[str]:
     result = emulator.adb(
         ["shell", "dumpsys", "package", "packages"],
@@ -175,16 +299,12 @@ def _latest_updated_package_from_dumpsys(
     known = set(known_packages)
     current_package: Optional[str] = None
     current_update: Optional[str] = None
-    latest_package: Optional[str] = None
-    latest_update: Optional[str] = None
+    candidates: list[tuple[str, str]] = []
 
     def consider() -> None:
-        nonlocal latest_package, latest_update
         if not current_package or current_package not in known or not current_update:
             return
-        if latest_update is None or current_update > latest_update:
-            latest_package = current_package
-            latest_update = current_update
+        candidates.append((current_update, current_package))
 
     for line in (result.stdout or "").splitlines():
         package_match = _DUMPSYS_PACKAGE_RE.search(line)
@@ -197,4 +317,18 @@ def _latest_updated_package_from_dumpsys(
         if update_match and current_package:
             current_update = update_match.group(1)
     consider()
-    return latest_package
+
+    if not candidates:
+        return None
+
+    # If hint is provided, prioritize candidates that match hint tokens
+    if hint:
+        hint_candidates = [
+            (update, pkg) for update, pkg in candidates if _score_package(hint, pkg) > 0
+        ]
+        if hint_candidates:
+            hint_candidates.sort(key=lambda x: x[0], reverse=True)
+            return hint_candidates[0][1]
+
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]

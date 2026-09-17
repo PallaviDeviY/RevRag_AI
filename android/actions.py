@@ -107,7 +107,10 @@ class ActionExecutor:
         self.package_name = self.config.package_name
 
     def install(self, apk_path: str):
-        return install_apk(apk_path, config=self.config, emulator=self.controller.emulator)
+        res = install_apk(apk_path, config=self.config, emulator=self.controller.emulator)
+        if res.success and res.package_name:
+            self.package_name = res.package_name
+        return res
 
     def observe(self, *, caused_by_action_id: Optional[str] = None) -> Observation:
         self.config.ensure_directories()
