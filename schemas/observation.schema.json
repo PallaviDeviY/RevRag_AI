@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://revrag.ai/schemas/observation.schema.json",
+  "title": "Observation",
+  "description": "Current Android application state produced by Member 1. Paths are relative to the project data/ directory.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "observation_id",
+    "screen_id",
+    "timestamp",
+    "screenshot_path",
+    "ui_tree_path",
+    "elements"
+  ],
+  "properties": {
+    "observation_id": { "type": "string", "pattern": "^obs_[0-9]{6}$" },
+    "screen_id": { "type": "string", "pattern": "^screen_[0-9]{6}$" },
+    "timestamp": { "type": "string" },
+    "package_name": { "type": ["string", "null"] },
+    "activity": { "type": ["string", "null"] },
+    "screenshot_path": { "type": "string", "pattern": "^screenshots/" },
+    "ui_tree_path": { "type": "string", "pattern": "^ui_trees/" },
+    "caused_by_action_id": { "type": ["string", "null"] },
+    "elements": {
+      "type": "array",
+      "items": { "$ref": "element.schema.json" }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://revrag.ai/schemas/action.schema.json",
+  "title": "Action",
+  "description": "Instruction from the AI Agent (Member 2) to the Android controller (Member 1).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["action_id", "action_type"],
+  "properties": {
+    "action_id": { "type": "string" },
+    "action_type": {
+      "type": "string",
+      "enum": ["tap", "type", "scroll", "swipe", "back", "home", "launch", "restart"]
+    },
+    "element_id": { "type": ["string", "null"] },
+    "bounds": {
+      "type": ["object", "null"],
+      "properties": {
+        "left": { "type": "integer" },
+        "top": { "type": "integer" },
+        "right": { "type": "integer" },
+        "bottom": { "type": "integer" }
+      }
+    },
+    "text": { "type": ["string", "null"] },
+    "direction": { "type": ["string", "null"], "enum": ["up", "down", "forward", "backward", null] },
+    "package_name": { "type": ["string", "null"] },
+    "duration_ms": { "type": "integer" }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://revrag.ai/schemas/screen.schema.json",
+  "title": "Screen",
+  "description": "A stable screen identity for a UI fingerprint. screen_id is screen_000001 within a controller session.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["screen_id"],
+  "properties": {
+    "screen_id": { "type": "string", "pattern": "^screen_[0-9]{6}$" },
+    "package_name": { "type": ["string", "null"] },
+    "activity": { "type": ["string", "null"] }
+  }
+}
