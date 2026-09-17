@@ -6,7 +6,7 @@ import logging
 import re
 import zipfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from .config import Config, load_config
 from .emulator_manager import CommandRunner, EmulatorManager
@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 _PACKAGE_RE = re.compile(r"package:\s*name='([^']+)'")
 _BADGING_RE = re.compile(r"package:\s*name='([^']+)'")
 _MANIFEST_PACKAGE_RE = re.compile(rb'package="([A-Za-z0-9._]+)"')
+_DUMPSYS_PACKAGE_RE = re.compile(r"Package \[([^\]]+)\]")
+_DUMPSYS_UPDATE_RE = re.compile(r"lastUpdateTime=([^\s]+(?:\s+[^\s]+)?)")
 
 
 def validate_apk(apk_path: str) -> Path:
@@ -74,6 +76,7 @@ def install_apk(
         emulator.require_adb()
         emulator.resolve_serial(required=True)
         package_name = extract_package_name(str(path), runner=emulator.runner)
+        packages_before = _pm_packages(emulator) if not package_name else []
         args = ["install"]
         if reinstall:
             args.append("-r")
@@ -87,7 +90,7 @@ def install_apk(
                     details={"stdout": result.stdout, "stderr": result.stderr},
                 )
         if not package_name:
-            package_name = _package_from_pm(emulator, path.stem)
+            package_name = _package_from_pm(emulator, path.stem, packages_before=packages_before)
         return InstallResult(
             success=True,
             apk_path=str(path),
@@ -122,15 +125,76 @@ def install_apk(
         )
 
 
-def _package_from_pm(emulator: EmulatorManager, hint: str) -> Optional[str]:
+def _package_from_pm(
+    emulator: EmulatorManager,
+    hint: str,
+    *,
+    packages_before: Optional[Sequence[str]] = None,
+) -> Optional[str]:
+    packages = _pm_packages(emulator)
+    before = set(packages_before or [])
+    added = [pkg for pkg in packages if pkg not in before]
+    hint_lower = hint.lower() if hint else ""
+    if hint_lower:
+        for pkg in added:
+            if hint_lower in pkg.lower():
+                return pkg
+    if len(added) == 1:
+        return added[0]
+    if hint_lower:
+        for pkg in packages:
+            if hint_lower in pkg.lower():
+                return pkg
+    if before:
+        return _latest_updated_package_from_dumpsys(emulator, packages)
+    return None
+
+
+def _pm_packages(emulator: EmulatorManager) -> list[str]:
     result = emulator.adb(["shell", "pm", "list", "packages"], check=False)
     packages = []
     for line in (result.stdout or "").splitlines():
         line = line.strip()
         if line.startswith("package:"):
             packages.append(line.split(":", 1)[1].strip())
-    if hint:
-        for pkg in packages:
-            if hint.lower() in pkg.lower():
-                return pkg
-    return None
+    return packages
+
+
+def _latest_updated_package_from_dumpsys(
+    emulator: EmulatorManager,
+    known_packages: Sequence[str],
+) -> Optional[str]:
+    result = emulator.adb(
+        ["shell", "dumpsys", "package", "packages"],
+        check=False,
+        timeout=30.0,
+    )
+    if not result.ok:
+        return None
+
+    known = set(known_packages)
+    current_package: Optional[str] = None
+    current_update: Optional[str] = None
+    latest_package: Optional[str] = None
+    latest_update: Optional[str] = None
+
+    def consider() -> None:
+        nonlocal latest_package, latest_update
+        if not current_package or current_package not in known or not current_update:
+            return
+        if latest_update is None or current_update > latest_update:
+            latest_package = current_package
+            latest_update = current_update
+
+    for line in (result.stdout or "").splitlines():
+        package_match = _DUMPSYS_PACKAGE_RE.search(line)
+        if package_match:
+            consider()
+            current_package = package_match.group(1)
+            current_update = None
+            continue
+        update_match = _DUMPSYS_UPDATE_RE.search(line)
+        if update_match and current_package:
+            current_update = update_match.group(1)
+    consider()
+    return latest_package
