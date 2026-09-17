@@ -1,0 +1,50 @@
+# Secrets and local config
+.env
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Tests / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime artifacts (keep directory placeholders)
+data/screenshots/*
+!data/screenshots/.gitkeep
+!data/screenshots/sample_observation.png
+data/ui_trees/*
+!data/ui_trees/.gitkeep
+!data/ui_trees/sample_observation.xml
+data/apk/*
+!data/apk/.gitkeep
+data/observations/*
+!data/observations/.gitkeep
+!data/sample/**
+
+# Android / local binaries
+*.apk
+!tests/fixtures/**
+*.log
+*.iml
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,2 @@
+pytest>=8.0,<9
+opencv-python-headless>=4.8,<5
