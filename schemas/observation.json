@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "screen": {"type": "string"},
+    "elements": {"type": "array"},
+    "annotations": {"type": "array"}
+  },
+  "required": ["screen", "elements"]
+}

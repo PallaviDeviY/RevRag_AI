@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {"type": "string"},
+    "target": {"type": ["string", "null"]},
+    "params": {"type": "object"}
+  },
+  "required": ["action"]
+}

@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "width": {"type": "number"},
+    "height": {"type": "number"},
+    "ui_elements": {"type": "array"},
+    "screenshot_path": {"type": ["string", "null"]}
+  },
+  "required": ["width", "height", "ui_elements"]
+}

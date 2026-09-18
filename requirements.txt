@@ -1,0 +1,6 @@
+pydantic
+python-dotenv
+openai
+Pillow
+opencv-python
+numpy
