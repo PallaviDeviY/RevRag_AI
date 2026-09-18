@@ -1,0 +1,11 @@
+{
+  "action_id": "action_000001",
+  "action_type": "tap",
+  "element_id": "element_000004",
+  "bounds": {
+    "left": 100,
+    "top": 400,
+    "right": 500,
+    "bottom": 480
+  }
+}

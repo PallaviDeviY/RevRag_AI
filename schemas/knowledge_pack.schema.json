@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://revrag.ai/schemas/knowledge_pack.schema.json",
+  "title": "KnowledgePack",
+  "description": "Provisional placeholder owned by Member 3 (Knowledge Engine). Member 1 does not produce this artifact. The Knowledge Engine should consume Observation JSON + screenshot + UI XML instead.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "pack_id": { "type": "string" },
+    "source_observation_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

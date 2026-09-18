@@ -1,0 +1,59 @@
+{
+  "observation_id": "obs_000002",
+  "screen_id": "screen_000002",
+  "timestamp": "2026-09-18T00:30:00+05:30",
+  "package_name": "com.example.app",
+  "activity": "com.example.app.MainActivity",
+  "screenshot_path": "screenshots/obs_000002.png",
+  "ui_tree_path": "ui_trees/obs_000002.xml",
+  "elements": [
+    {
+      "element_id": "element_000005",
+      "type": "android.widget.TextView",
+      "text": "Enter Password",
+      "content_description": null,
+      "resource_id": "com.example:id/password_title",
+      "clickable": false,
+      "enabled": true,
+      "scrollable": false,
+      "bounds": {
+        "left": 100,
+        "top": 100,
+        "right": 500,
+        "bottom": 160
+      }
+    },
+    {
+      "element_id": "element_000006",
+      "type": "android.widget.EditText",
+      "text": "",
+      "content_description": "Password",
+      "resource_id": "com.example:id/password",
+      "clickable": true,
+      "enabled": true,
+      "scrollable": false,
+      "bounds": {
+        "left": 100,
+        "top": 220,
+        "right": 500,
+        "bottom": 290
+      }
+    },
+    {
+      "element_id": "element_000007",
+      "type": "android.widget.Button",
+      "text": "Continue",
+      "content_description": "Continue",
+      "resource_id": "com.example:id/continue",
+      "clickable": true,
+      "enabled": true,
+      "scrollable": false,
+      "bounds": {
+        "left": 100,
+        "top": 320,
+        "right": 500,
+        "bottom": 400
+      }
+    }
+  ]
+}
